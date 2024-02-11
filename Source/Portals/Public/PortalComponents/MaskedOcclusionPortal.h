@@ -22,7 +22,6 @@ public:
 	void UpdateMaskParameters();
 
 protected:
-	void GetSocketTransformations(const FName& Socket, FVector& SocketLocation, FVector& SocketRotationVector, bool bUseRightVector) const;
 	static FVector CalculateRotationVector(const FVector& CameraLocation, const FVector& SocketLocation, const FVector& SocketRotationVector, bool bIsBackside = false, bool bIsXY = false);
 	void SetMaskedPortalParameters(const FVector& RotationVector, const FVector& SocketLocation,
 	                               const FString& StartParameterName, const FString& FinishParameterName);

@@ -13,9 +13,6 @@ struct FMaskedPortalParameters
     UMaterialParameterCollection* MaskParameters;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    FString SideParameterName = "Side";
-    
-    UPROPERTY(EditAnywhere, BlueprintReadWrite)
     FString UpStartParameterName = "UpStart";
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)

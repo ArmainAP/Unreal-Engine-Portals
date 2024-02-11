@@ -8,16 +8,9 @@
 #include "Kismet/KismetMaterialLibrary.h"
 #include "Kismet/KismetMathLibrary.h"
 
-void UMaskedOcclusionPortal::GetSocketTransformations(const FName& Socket, FVector& SocketLocation, FVector& SocketRotationVector, const bool bUseRightVector) const
-{
-	SocketLocation = GetSocketLocation(Socket);
-	SocketRotationVector = bUseRightVector ? UKismetMathLibrary::GetRightVector(GetSocketRotation(Socket)) : UKismetMathLibrary::GetUpVector(GetSocketRotation(Socket));
-}
-
 FVector UMaskedOcclusionPortal::CalculateRotationVector(const FVector& CameraLocation, const FVector& SocketLocation, const FVector& SocketRotationVector, const bool bIsBackside, const bool bIsXY)
 {
 	const FVector Delta = bIsBackside ? CameraLocation - SocketLocation : SocketLocation - CameraLocation;
-
 	return bIsXY ? UKismetMathLibrary::GetUpVector(UKismetMathLibrary::MakeRotFromXY(Delta, SocketRotationVector))
 		: UKismetMathLibrary::GetRightVector(UKismetMathLibrary::MakeRotFromXZ(Delta, SocketRotationVector));
 }
@@ -32,8 +25,8 @@ void UMaskedOcclusionPortal::SetMaskedPortalParameters(const FVector& RotationVe
 
 void UMaskedOcclusionPortal::CalculateMaskedPortalParameters(const FName& Socket, const FVector& CameraLocation, bool bIsBackside, const FString& StartParameterName, const FString& FinishParameterName, float Direction)
 {
-	FVector SocketLocation, SocketRotationVector;
-	GetSocketTransformations(Socket, SocketLocation, SocketRotationVector, true);
+	const FVector SocketLocation = GetSocketLocation(Socket);
+	const FVector SocketRotationVector = UKismetMathLibrary::GetRightVector(GetSocketRotation(Socket));
 	const FVector RotationVector = CalculateRotationVector(CameraLocation, SocketLocation, SocketRotationVector, bIsBackside, true);
 	SetMaskedPortalParameters(RotationVector * RenderDistance * Direction, SocketLocation, StartParameterName, FinishParameterName);
 }
@@ -41,8 +34,8 @@ void UMaskedOcclusionPortal::CalculateMaskedPortalParameters(const FName& Socket
 void UMaskedOcclusionPortal::CalculateMaskedPortalParametersSide(const FName& Socket, const FVector& CameraLocation, bool bIsBackside, const FString& StartParameterName, const FString& FinishParameterName, float Direction)
 {
 	Direction *= bIsBackside ? 1 : -1; 
-	FVector SocketLocation, SocketRotationVector;
-	GetSocketTransformations(Socket, SocketLocation, SocketRotationVector, false);
+	const FVector SocketLocation = GetSocketLocation(Socket);
+	const FVector SocketRotationVector = UKismetMathLibrary::GetUpVector(GetSocketRotation(Socket));
 	const FVector RotationVector = CalculateRotationVector(CameraLocation, SocketLocation, SocketRotationVector);
 	SetMaskedPortalParameters(RotationVector * RenderDistance * Direction, SocketLocation, StartParameterName, FinishParameterName);
 }
@@ -88,8 +81,5 @@ void UMaskedOcclusionPortal::UpdateMaskParameters()
 	CalculateMaskedPortalParametersSide("L", CameraLocation, CachedIsBackside, MaskedPortalParameters.LeftStartParameterName + FString::FromInt(PortalWorld), MaskedPortalParameters.LeftFinishParameterName + FString::FromInt(PortalWorld), 1.0f);
 	CalculateMaskedPortalParametersSide("R", CameraLocation, CachedIsBackside, MaskedPortalParameters.RightStartParameterName + FString::FromInt(PortalWorld), MaskedPortalParameters.RightFinishParameterName + FString::FromInt(PortalWorld), -1.0f);
 
-	const FName ParameterName = FName(MaskedPortalParameters.SideParameterName + FString::FromInt(PortalWorld));
-	const bool PlayerSide = GetOcclusionPortalSubsystem()->GetPlayerWorld() == PortalWorld;
-	UKismetMaterialLibrary::SetScalarParameterValue(this, MaskedPortalParameters.MaskParameters, ParameterName, PlayerSide);
 	UKismetMaterialLibrary::SetScalarParameterValue(this, MaskedPortalParameters.MaskParameters, "World", GetOcclusionPortalSubsystem()->GetPlayerWorld());
 }
