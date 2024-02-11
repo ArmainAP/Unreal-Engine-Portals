@@ -42,5 +42,5 @@ public:
 	// Adjusts the rendering distance for portal visibility.
 	// Consider reducing this value on less powerful systems like Oculus Quest.
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	float RenderDistance = 100000.0f;
+	float RenderDistance = 1000.f;
 };

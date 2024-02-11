@@ -82,4 +82,5 @@ void UMaskedOcclusionPortal::UpdateMaskParameters()
 	CalculateMaskedPortalParametersSide("R", CameraLocation, CachedIsBackside, MaskedPortalParameters.RightStartParameterName + FString::FromInt(PortalWorld), MaskedPortalParameters.RightFinishParameterName + FString::FromInt(PortalWorld), -1.0f);
 
 	UKismetMaterialLibrary::SetScalarParameterValue(this, MaskedPortalParameters.MaskParameters, "World", GetOcclusionPortalSubsystem()->GetPlayerWorld());
+	UKismetMaterialLibrary::SetScalarParameterValue(this, MaskedPortalParameters.MaskParameters, "RenderDistance", RenderDistance);
 }
