@@ -1,0 +1,66 @@
+﻿struct OcclusionPortal
+{
+	bool WorldVisibility;
+	float3 GlobalPosition;
+	float RenderDistance;
+
+	float3 BackStart;
+	float3 BackFinish;
+	float3 UpStart;
+	float3 UpFinish;
+	float3 BottomStart;
+	float3 BottomFinish;
+	float3 LeftStart;
+	float3 LeftFinish;
+	float3 RightStart;
+	float3 RightFinish;
+
+	float Draw(float3 Start, float3 Finish)
+	{
+		const float3 Coords = GlobalPosition - Start;
+		Finish -= Start;
+
+		const float DotProduct = dot(Coords, normalize(Finish));
+		const float Delta = 1 - ((DotProduct - length(Finish)) - RenderDistance);
+
+		float A = abs(DotProduct) - RenderDistance;
+		A = (1 - clamp(A / 2.0, 0.0, 1.0));
+
+		float B = DotProduct + RenderDistance;
+		B = clamp(B / 2.0, 0.0, 1.0);
+
+		return min(min(A, B), Delta);	
+	}
+
+	float Compute()
+	{
+		float Result = Draw(BackStart, BackFinish);
+		Result += Draw(UpStart, UpFinish);
+		Result += Draw(LeftStart, LeftFinish);
+		Result += Draw(RightStart, RightFinish);
+		Result += Draw(BottomStart, BottomFinish);
+
+		if(!WorldVisibility)
+		{
+			Result = 1 - Result;
+		}
+		
+		return Result > 0.5; 
+	}
+};
+
+OcclusionPortal OP;
+OP.WorldVisibility = WorldVisibility;
+OP.GlobalPosition = GlobalPosition;
+OP.RenderDistance = RenderDistance;
+OP.BackStart = BackStart;
+OP.BackFinish = BackFinish;
+OP.UpStart = UpStart;
+OP.UpFinish = UpFinish;
+OP.BottomStart = BottomStart;
+OP.BottomFinish = BottomFinish;
+OP.LeftStart = LeftStart;
+OP.LeftFinish = LeftFinish;
+OP.RightStart = RightStart;
+OP.RightFinish = RightFinish;
+return OP.Compute();
