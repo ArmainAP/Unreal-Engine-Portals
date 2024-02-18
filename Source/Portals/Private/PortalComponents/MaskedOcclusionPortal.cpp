@@ -10,9 +10,24 @@
 
 FVector UMaskedOcclusionPortal::CalculateRotationVector(const FVector& CameraLocation, const FVector& SocketLocation, const FVector& SocketRotationVector, const bool bIsBackside, const bool bIsXY)
 {
-	const FVector Delta = bIsBackside ? CameraLocation - SocketLocation : SocketLocation - CameraLocation;
-	return bIsXY ? UKismetMathLibrary::GetUpVector(UKismetMathLibrary::MakeRotFromXY(Delta, SocketRotationVector))
-		: UKismetMathLibrary::GetRightVector(UKismetMathLibrary::MakeRotFromXZ(Delta, SocketRotationVector));
+	const FVector Delta = (bIsBackside ? CameraLocation - SocketLocation : SocketLocation - CameraLocation).GetSafeNormal();
+	FVector Norm = SocketRotationVector.GetSafeNormal();
+
+	// if they're almost same, we need to find arbitrary vector
+	if (FMath::IsNearlyEqual(FMath::Abs(Delta | Norm), 1.f))
+	{
+		// make sure we don't ever pick the same as NewX
+		Norm = (FMath::Abs(Delta.Z) < 1.f) ? FVector::UpVector : FVector::ForwardVector;
+	}
+
+	if(bIsXY)
+	{
+		return (Delta ^ Norm).GetSafeNormal();
+	}
+	else
+	{
+		return (Norm ^ Delta).GetSafeNormal();
+	}
 }
 
 void UMaskedOcclusionPortal::SetMaskedPortalParameters(const FVector& RotationVector, const FVector& SocketLocation, const FString& StartParameterName, const FString& FinishParameterName)
