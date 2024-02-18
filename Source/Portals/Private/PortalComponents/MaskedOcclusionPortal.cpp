@@ -4,72 +4,10 @@
 #include "PortalComponents/MaskedOcclusionPortal.h"
 
 #include "OcclusionPortalsSubsystem.h"
-#include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMaterialLibrary.h"
 #include "Kismet/KismetMathLibrary.h"
 
-FVector UMaskedOcclusionPortal::CalculateRotationVector(const FVector& CameraLocation, const FVector& SocketLocation, const FVector& SocketRotationVector, const bool bIsBackside, const bool bIsXY)
-{
-	const FVector Delta = (bIsBackside ? CameraLocation - SocketLocation : SocketLocation - CameraLocation).GetSafeNormal();
-	FVector Norm = SocketRotationVector.GetSafeNormal();
-
-	// if they're almost same, we need to find arbitrary vector
-	if (FMath::IsNearlyEqual(FMath::Abs(Delta | Norm), 1.f))
-	{
-		// make sure we don't ever pick the same as NewX
-		Norm = (FMath::Abs(Delta.Z) < 1.f) ? FVector::UpVector : FVector::ForwardVector;
-	}
-
-	if(bIsXY)
-	{
-		return (Delta ^ Norm).GetSafeNormal();
-	}
-	else
-	{
-		return (Norm ^ Delta).GetSafeNormal();
-	}
-}
-
-void UMaskedOcclusionPortal::SetMaskedPortalParameters(const FVector& RotationVector, const FVector& SocketLocation, const FString& StartParameterName, const FString& FinishParameterName)
-{
-	const FVector Start = RotationVector + SocketLocation;
-	const FVector End = RotationVector + Start;
-	UKismetMaterialLibrary::SetVectorParameterValue(this, MaskedPortalParameters.MaskParameters, FName(*StartParameterName), UKismetMathLibrary::Conv_VectorToLinearColor(Start));
-	UKismetMaterialLibrary::SetVectorParameterValue(this, MaskedPortalParameters.MaskParameters, FName(*FinishParameterName), UKismetMathLibrary::Conv_VectorToLinearColor(End));
-}
-
-void UMaskedOcclusionPortal::CalculateMaskedPortalParameters(const FName& Socket, const FVector& CameraLocation, bool bIsBackside, const FString& StartParameterName, const FString& FinishParameterName, float Direction)
-{
-	const FVector SocketLocation = GetSocketLocation(Socket);
-	const FVector SocketRotationVector = UKismetMathLibrary::GetRightVector(GetSocketRotation(Socket));
-	const FVector RotationVector = CalculateRotationVector(CameraLocation, SocketLocation, SocketRotationVector, bIsBackside, true);
-	SetMaskedPortalParameters(RotationVector * RenderDistance * Direction, SocketLocation, StartParameterName, FinishParameterName);
-}
-
-void UMaskedOcclusionPortal::CalculateMaskedPortalParametersSide(const FName& Socket, const FVector& CameraLocation, bool bIsBackside, const FString& StartParameterName, const FString& FinishParameterName, float Direction)
-{
-	Direction *= bIsBackside ? 1 : -1; 
-	const FVector SocketLocation = GetSocketLocation(Socket);
-	const FVector SocketRotationVector = UKismetMathLibrary::GetUpVector(GetSocketRotation(Socket));
-	const FVector RotationVector = CalculateRotationVector(CameraLocation, SocketLocation, SocketRotationVector);
-	SetMaskedPortalParameters(RotationVector * RenderDistance * Direction, SocketLocation, StartParameterName, FinishParameterName);
-}
-
-void UMaskedOcclusionPortal::CalculateMaskedPortalParametersBackSide(bool bIsBackside, const FString& StartParameterName, const FString& FinishParameterName)
-{
-	const float Multiplier = bIsBackside ? 1 : -1;
-	const FVector Location = GetComponentLocation();
-	const FVector Forward = GetForwardVector();
-	SetMaskedPortalParameters(Forward * RenderDistance * Multiplier, Location, StartParameterName, FinishParameterName);
-}
-
-void UMaskedOcclusionPortal::PlayerTransition_Implementation()
-{
-	Super::PlayerTransition_Implementation();
-}
-
-void UMaskedOcclusionPortal::TickComponent(float DeltaTime, ELevelTick TickType,
-                                           FActorComponentTickFunction* ThisTickFunction)
+void UMaskedOcclusionPortal::TickComponent(const float DeltaTime, const ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
@@ -78,24 +16,8 @@ void UMaskedOcclusionPortal::TickComponent(float DeltaTime, ELevelTick TickType,
 		return;
 	}
 	
-	UpdateMaskParameters();
-}
-
-void UMaskedOcclusionPortal::UpdateMaskParameters()
-{
-	const APlayerCameraManager* PlayerCameraManager = UGameplayStatics::GetPlayerCameraManager(this, TrackedPlayerIndex);
-	if(!IsValid(PlayerCameraManager))
-	{
-		return;
-	}
-	
-	const FVector CameraLocation = PlayerCameraManager->GetCameraLocation();
-	CalculateMaskedPortalParametersBackSide(CachedIsBackside, MaskedPortalParameters.BackStartParameterName + FString::FromInt(PortalWorld), MaskedPortalParameters.BackFinishParameterName + FString::FromInt(PortalWorld));
-	CalculateMaskedPortalParameters("U", CameraLocation, CachedIsBackside, MaskedPortalParameters.UpStartParameterName + FString::FromInt(PortalWorld), MaskedPortalParameters.UpFinishParameterName + FString::FromInt(PortalWorld), 1.0f);
-	CalculateMaskedPortalParameters("D", CameraLocation, CachedIsBackside, MaskedPortalParameters.BottomStartParameterName + FString::FromInt(PortalWorld), MaskedPortalParameters.BottomFinishParameterName + FString::FromInt(PortalWorld), -1.0f);
-	CalculateMaskedPortalParametersSide("L", CameraLocation, CachedIsBackside, MaskedPortalParameters.LeftStartParameterName + FString::FromInt(PortalWorld), MaskedPortalParameters.LeftFinishParameterName + FString::FromInt(PortalWorld), 1.0f);
-	CalculateMaskedPortalParametersSide("R", CameraLocation, CachedIsBackside, MaskedPortalParameters.RightStartParameterName + FString::FromInt(PortalWorld), MaskedPortalParameters.RightFinishParameterName + FString::FromInt(PortalWorld), -1.0f);
-
-	UKismetMaterialLibrary::SetScalarParameterValue(this, MaskedPortalParameters.MaskParameters, "World", GetOcclusionPortalSubsystem()->GetPlayerWorld());
-	UKismetMaterialLibrary::SetScalarParameterValue(this, MaskedPortalParameters.MaskParameters, "RenderDistance", RenderDistance);
+	UKismetMaterialLibrary::SetVectorParameterValue(this, MaskedPortalParameters.MaskParameters, "A", UKismetMathLibrary::Conv_VectorToLinearColor(GetSocketLocation("A")));
+	UKismetMaterialLibrary::SetVectorParameterValue(this, MaskedPortalParameters.MaskParameters, "B", UKismetMathLibrary::Conv_VectorToLinearColor(GetSocketLocation("B")));
+	UKismetMaterialLibrary::SetVectorParameterValue(this, MaskedPortalParameters.MaskParameters, "C", UKismetMathLibrary::Conv_VectorToLinearColor(GetSocketLocation("C")));
+	UKismetMaterialLibrary::SetVectorParameterValue(this, MaskedPortalParameters.MaskParameters, "D", UKismetMathLibrary::Conv_VectorToLinearColor(GetSocketLocation("D")));
 }
